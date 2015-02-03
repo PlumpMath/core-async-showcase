@@ -1,7 +1,9 @@
 (ns core-async-showcase.core
   (:refer-clojure :exclude [map reduce into partition partition-by take merge])
-  (:require [clojure.core.async :refer :all :as async]) 
-  )
+  (:require [clojure.core.async :refer :all :as async]
+            [clojure.pprint :refer [pprint]]
+            ))
+  
 ;;; channel with default parameters
 (def c (chan))
 
@@ -70,7 +72,21 @@
 
 (go (println "go also works!" (<! (go 42))))
 
+;;(pprint (macroexpand '(go 42)))
 
+
+;; buffer chan
+
+(def fixed-length-buffer-can (chan 1))
+
+(go (>! fixed-length-buffer-can 1)
+    (println "DONE 1"))
+
+(go (>! fixed-length-buffer-can 2)
+    (println "DONE 2"))
+
+(<!! fixed-length-buffer-can)
+(<!! fixed-length-buffer-can)
 
 
 
