@@ -88,25 +88,84 @@
 (<!! fixed-length-buffer-can)
 (<!! fixed-length-buffer-can)
 
+;; dropping buffer (drop newest)
+
+(def dropping-buffer-channel (chan (dropping-buffer 1)))
+
+(go (>! dropping-buffer-channel 1)
+    (println "DONE dropping-1"))
+
+(go (>! dropping-buffer-channel 2)
+    (println "DONE dropping-2")
+    )
+
+(<!! dropping-buffer-channel)
 
 
+;;; sliding buffer (e.g TCP sliding window like buffer)
+
+(def sliding-buffer-channel (chan (sliding-buffer 1)))
+
+(go (>! sliding-buffer-channel 1)
+    (println "DONE sliding-1"))
+
+(go (>! sliding-buffer-channel 2)
+    (println "DONE sliding-2"))
+
+(<!! sliding-buffer-channel)
 
 
+;;; close channel
+
+(def c (chan))
+(go (>! c 1))
+;;; canT do this outside go block!!!!!!
+;(>! c 1)
+(<!! c)
+
+(close! c)
+(go (>! c 1))
+(<!! c)
 
 
+;;; ALT % TIMEOUT
+
+;;; usage : takes 1st item out of the can
+
+(def can-a (chan))
+(def can-b (chan))
+
+(put! can-a 42)
+(put! can-b 99)
+
+(alts!! [can-a can-b])
+
+;;;note the usage in real world will be shown later
 
 
+;;; close a channel if nothing recv in X ms
+
+(<!! (timeout 5000))
+
+;(def timeout-can-a (timeout 1000))
+;(def normal-chan (chan))
+;(alts!! [timeout-can-a normal-chan])
 
 
+;;; put with alt!
 
+;TODO
 
+;;; alt with default
+        
 
+(alts!! [can-a can-b] :default "nothing in here, close!")
+;;; 
+;;; diference in ! and !!
 
-
-
-
-
-
+;;; TODO 1.difference between ! and !!
+;;;      2.differnece between alt! alt!! and alts! alts!!
+;;;      3.benifit of channel/alts approach over queue or a.k.a java BlockingQueue
 
 
 
