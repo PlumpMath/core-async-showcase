@@ -229,6 +229,26 @@
 (>!! executing-chan "hello")
 
 
+;; broadcasting
+;;;TODO the 0.1.2 is not the same as 0.1.3 need confirm the expecting behvaious
+(def to-multi  (chan 1))
+(def m (mult to-multi))
+
+(let [c (chan 1)]
+ (tap m c)
+  (go (loop []
+        (when-let [val (<! c)]
+          (println "GOT" val))
+        (recur)
+        )
+      (println "EXITING")))
+
+
+(>!! to-multi 1)
+(>!! to-multi 2)
+
+(close! to-multi)
+
 ;;; put with alt!
 
 ;TODO
