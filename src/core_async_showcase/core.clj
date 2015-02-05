@@ -1,5 +1,5 @@
 (ns core-async-showcase.core
-  (:refer-clojure :exclude [map reduce into partition partition-by take merge])
+   (:refer-clojure :exclude [map reduce into partition partition-by take merge])
   (:require [clojure.core.async :refer :all :as async]
             [clojure.pprint :refer [pprint]]
             ))
@@ -65,7 +65,7 @@
 
 (thread (println "async version return channel." (<!! (thread 42))))
 
-;;;其他都是空了吹，以下才是真家伙 go 真的是go
+;;;go block, the key concept of core.async
 (go 42)
 
 (<!! (go 42))
@@ -147,9 +147,86 @@
 
 (<!! (timeout 5000))
 
+;;;TODO lib upgraded this is not working anymore, find out how
 ;(def timeout-can-a (timeout 1000))
 ;(def normal-chan (chan))
 ;(alts!! [timeout-can-a normal-chan])
+
+;;; default
+(alts!! [can-a] :default :nothing-in-the-channel)
+;;; NOTICE by default alts! and alts!! choose in random order
+
+(put! can-a :a) ;eval this n times
+(put! can-b :b) 
+
+(alts!! [can-a can-b]) ;DISORDERED!!!
+
+;;; priority
+(put! can-a :a-priority)
+(put! can-b :b-priority)
+
+(alts!! [can-a can-b])
+
+;;; log
+
+(def logging-chan (chan))
+
+(thread
+ (loop []
+   (when-let [v (<!! logging-chan)]
+     (println v)
+     (recur)
+     )
+   )
+ (println "end logging")
+ )
+
+(defn log [msg]
+  (>!! logging-chan msg)
+  )
+
+(log "hehe")
+
+
+;;; Thread pool
+(defn thread-pool-service [c func max-threads timeout-ms]
+  (let [thread-count (atom 0)
+        buffers-status (atom 0)
+        buffer-chan (chan)
+        thread-fn (fn []
+                    (swap! thread-count inc)
+                    (loop []
+                      (when-let [val (first (alts!! [buffer-chan (timeout timeout-ms)]))]
+                        (func val)
+                        (recur)))
+                    (swap! thread-count dec)
+                    (println "Exiting"))]
+
+    (go (loop []
+          (when-let [val (<! c)]
+            (if-not (alt! [[buffer-chan val]] true :default false)
+              (loop []
+                (if (< @thread-count max-threads)
+                  (do (put! buffer-chan val)
+                      (thread (thread-fn)))
+                  (when-not (alt! [[buffer-chan val]] true
+                                  [(timeout 1000)]
+                                  ([_] false))
+                    (recur)))))
+            (recur)))
+        (close! buffer-chan))))
+
+(def executing-chan (chan))
+
+
+(def thread-pool (thread-pool-service executing-chan
+                                      (fn [x] (println x)
+                                        (Thread/sleep 5000))
+                                      3
+                                      3000
+                                      ))
+
+(>!! executing-chan "hello")
 
 
 ;;; put with alt!
@@ -160,6 +237,7 @@
         
 
 (alts!! [can-a can-b] :default "nothing in here, close!")
+
 ;;; 
 ;;; diference in ! and !!
 
