@@ -3,7 +3,7 @@
   (:require [clojure.core.async :refer :all :as async]
             [clojure.pprint :refer [pprint]]
             ))
-  
+
 ;;; channel with default parameters
 (def c (chan))
 
@@ -230,15 +230,27 @@
 
 
 ;; broadcasting
-;;;TODO the 0.1.2 is not the same as 0.1.3 need confirm the expecting behvaious
+;;;TODO the 0.1.2 is not the same as 0.1.3 need confirm the expecting
+;;behvaiousi????
+
+;;; 1.def mutl-chan
+;;; 2.tap to noraml chan
+
 (def to-multi  (chan 1))
 (def m (mult to-multi))
 
-(let [c (chan 1)]
- (tap m c)
+(let [c (chan 1)
+      c-2 (chan 2)]
+  (tap m c)
+  (tap m c-2)
   (go (loop []
+        ;;when c have sth
         (when-let [val (<! c)]
-          (println "GOT" val))
+          (println "GOT sth from C" val))
+        ;;then c-2 should also have sth
+        (when-let [val (<! c-2)]
+          (println "GOT sth from C-2" val)
+          )
         (recur)
         )
       (println "EXITING")))
@@ -249,9 +261,75 @@
 
 (close! to-multi)
 
+
+;;; PUB/SUB
+;;; multi version of multimethod
+
+(def to-pub (chan 1))
+(def p (pub to-pub :tag))
+
+(def printing-chan (chan 1))
+
+(go (loop []
+      (when-let [val (<! printing-chan)]
+        (println val)
+        (recur))))
+
+(let [c (chan 1)]
+  (sub p :java c)
+  (go (println "JAVA news:")
+      (loop []
+        (when-let [val (<! c)]
+          (>! printing-chan (pr-str "JAVA nerd got news :" (:msg val)))))))
+
+(let [c (chan 1)]
+  (sub p :c c)
+  (go (println "c news:")
+      (loop []
+        (when-let [val (<! c)]
+          (>! printing-chan (pr-str "c nerd got news :" (:msg val)))))))
+
+;;; DOWN SIDE no default impl, but ....lisper normally dont wrote this
+;;; kind of shity code...
+(let [c (chan 1)]
+  (sub p :default c)
+  (go (println "default news:")
+      (loop []
+        (when-let [val (<! c)]
+          (>! printing-chan (pr-str "x nerd got news :" (:msg val)))))))
+
+;; (defn regist-news-feed [{tag :tag
+;;                          title :title
+;;                          :as all}]
+;;   (println "regist" tag)
+;;   (let [c (chan 1)]
+;;     (sub p tag c)
+;;     (go (println title "news:")
+;;         (loop []
+;;           (when-let [val (<! c)]
+;;             (>! printing-chan (pr-str title "Got news :" val))))))
+;;   )
+
+
+(defn send-with-tags [msg]
+  (doseq [tag (:tags msg)]
+    (println "sending..." tag)
+    (>!! to-pub {:tag tag
+                 :msg (:msg msg)})))
+
+
+;; (regist-news-feed {:tag :C
+;;                    :title "C programmer"})
+
+(send-with-tags {:msg "JVM crashes everytime!"
+                 :tags [:java]})
+(send-with-tags {:msg "C core-dump methods "
+                 :tags [:C]})
+(send-with-tags {:msg "clj bla ba "
+                 :tags [:clojure]})
+
 ;;; put with alt!
 
-;TODO
 
 ;;; alt with default
         
@@ -263,7 +341,9 @@
 
 ;;; TODO 1.difference between ! and !!
 ;;;      2.differnece between alt! alt!! and alts! alts!!
-;;;      3.benifit of channel/alts approach over queue or a.k.a java BlockingQueue
+;;;      3.benifit of channel/alts approach over queue or a.k.a java
+;;;      BlockingQueue
+;;;      4.async testing
 
 
 
