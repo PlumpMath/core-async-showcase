@@ -1,5 +1,5 @@
 (ns core-async-showcase.core
-   (:refer-clojure :exclude [map reduce into partition partition-by take merge])
+  (:refer-clojure :exclude [map reduce into partition partition-by take merge])
   (:require [clojure.core.async :refer :all :as async]
             [clojure.pprint :refer [pprint]]
             ))
@@ -327,6 +327,44 @@
                  :tags [:C]})
 (send-with-tags {:msg "clj bla ba "
                  :tags [:clojure]})
+
+(close! to-pub)
+
+
+;;; ACTOR model
+
+(defprotocol IActor
+  (! [this msg]))
+
+(defn spawn [f]
+  (let [c (chan Integer/MAX_VALUE)]
+    (go (loop [f f]
+          (recur (f (<! c)))))
+    (reify IActor
+      (! [this msg]
+        (put! c msg)))))
+
+(defn spawn-counter []
+  (let [counter (fn counter [cnt msg]
+                  (case (:type msg)
+                    :inc (partial counter (inc cnt))
+                    :get (do (! (:to msg) cnt)
+                             (partial counter cnt))))]
+    (spawn (partial counter 0))))
+
+(defn printer []
+  (spawn (fn ptr [msg]
+           (println "GOT > " msg)
+           ptr)))
+
+(def prt (printer))
+
+(def counter (spawn-counter))
+
+(! counter {:type :inc})
+
+(! counter {:type :get
+            :to ptr})
 
 ;;; put with alt!
 
