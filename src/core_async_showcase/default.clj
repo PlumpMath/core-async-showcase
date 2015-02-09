@@ -53,9 +53,40 @@
 
 ;;; Delays
 
-(defn default-delay-behavious
-  []
-  (delay (let [msg "bla bla bla...."]
-           (println "trying deref :" msg)
-           msg))
+(def delay-val (delay (println "eval once, then cache") (+ 1 1)))
+
+delay-val
+
+(force delay-val)
+
+@delay-val
+
+;;; use case
+;;; post notification, when X is done, trigger some Y event
+
+(def items ["xx.avi"
+            "tokyo-hot.rmvb"
+            "playbody.epub"])
+
+(defn notiy-down-comletion
+  [user-id]
+  (println "Hello, item -> " user-id  "is downloaded" ))
+
+(defn download-item
+  [item]
+  (println "playing -> " item) 
   )
+
+(let [notify (delay (notiy-down-comletion "me"))]
+  (doseq [item items]
+    (future (view-item item)
+            (force notify))))
+
+;;; Promises
+
+(def my-promise (promise))
+
+(deliver my-promise (+ 1 1))
+
+@my-promise
+
