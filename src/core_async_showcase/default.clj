@@ -90,3 +90,12 @@ delay-val
 
 @my-promise
 
+;;; NOTICE derefing a promise will cause BLOCK
+
+(let [some-func-in-js-promise (promise)]
+  (future (println "Here's some js fn: " @some-func-in-js-promise)
+          )
+  (Thread/sleep 1000)
+  (deliver some-func-in-js-promise "function blabla"))
+
+
