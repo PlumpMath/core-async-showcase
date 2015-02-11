@@ -17,6 +17,7 @@
 
 (take! c (fn [v] (println "GOT" v)))
 
+
 ;;;;;;;;;;;;;;;;;;;;;
 ;;call-back like approach
 ;;;;;;;;;;;;;;;;;;;;
@@ -363,8 +364,7 @@
 
 (! counter {:type :inc})
 
-(! counter {:type :get
-            :to ptr})
+
 
 ;;; put with alt!
 
@@ -382,6 +382,17 @@
 ;;;      3.benifit of channel/alts approach over queue or a.k.a java
 ;;;      BlockingQueue
 ;;;      4.async testing
+
+
+(def c (to-chan '(1 2 3)))
+
+
+(defn add-1 [x]
+  (+ x 1))
+
+(def mapped-c (map add-1 [c]))
+(<!! mapped-c)
+
 
 
 

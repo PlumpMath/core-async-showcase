@@ -72,7 +72,7 @@ delay-val
   [user-id]
   (println "Hello, item -> " user-id  "is downloaded" ))
 
-(defn download-item
+(defn view-item
   [item]
   (println "playing -> " item) 
   )
@@ -97,5 +97,14 @@ delay-val
           )
   (Thread/sleep 1000)
   (deliver some-func-in-js-promise "function blabla"))
+
+
+(defn append-to-file
+  [filename s]
+  (spit filename s :append true))
+
+(defn format-quote
+  [quote]
+  (str "beging \n" quote "end" ))
 
 
